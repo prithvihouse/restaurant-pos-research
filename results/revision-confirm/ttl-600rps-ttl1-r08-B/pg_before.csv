@@ -1,0 +1,11 @@
+row_type,queryid,calls,rows,total_exec_ms,query,stats_reset,dealloc
+info,,,,,,2026-11-14 18:02:00.997401+00,0
+statement,-133942128219106338,123,123,5.472422000000001,"SELECT /* pos_menu_item */ m.id AS ""itemId"", m.name, m.price_cents AS ""priceCents"",
+           MIN(i.on_hand / r.units_per_item)::integer AS ""sellableUnits"",
+           SUM(i.revision)::text AS ""stockVersion""
+    FROM menu_items m
+    JOIN recipe_ingredients r ON r.menu_item_id = m.id
+    JOIN ingredients i ON i.id = r.ingredient_id
+    WHERE m.id = $1
+    GROUP BY m.id",,
+statement,6035395452179635555,1,300,0.101192,"SELECT ingredient_id, menu_item_id FROM recipe_ingredients ORDER BY ingredient_id, menu_item_id",,

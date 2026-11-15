@@ -1,0 +1,13 @@
+{
+  "menuDatabaseReads": 253,
+  "cacheHits": 829,
+  "cacheMisses": 253,
+  "cacheGetErrors": 0,
+  "cacheSetErrors": 0,
+  "redisConnectionErrors": 0,
+  "invalidationAttempts": 120,
+  "invalidationErrors": 0,
+  "deletedKeys": 199,
+  "fenceRejectedFills": 0,
+  "retainedCacheFills": 0
+}

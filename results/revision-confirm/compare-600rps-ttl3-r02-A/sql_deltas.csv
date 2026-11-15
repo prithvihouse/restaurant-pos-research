@@ -1,0 +1,30 @@
+queryid,kind,calls,rows,total_exec_ms,query,menu_read
+-1259577620467670751,select_locking,601,1803,28.037576999999985,"SELECT i.id, i.on_hand, r.units_per_item FROM recipe_ingredients r
+      JOIN ingredients i ON i.id = r.ingredient_id
+      WHERE r.menu_item_id = $1 ORDER BY i.id FOR UPDATE OF i",False
+-133942128219106338,select,2400,2400,105.51788699999963,"SELECT /* pos_menu_item */ m.id AS ""itemId"", m.name, m.price_cents AS ""priceCents"",
+           MIN(i.on_hand / r.units_per_item)::integer AS ""sellableUnits"",
+           SUM(i.revision)::text AS ""stockVersion""
+    FROM menu_items m
+    JOIN recipe_ingredients r ON r.menu_item_id = m.id
+    JOIN ingredients i ON i.id = r.ingredient_id
+    WHERE m.id = $1
+    GROUP BY m.id",True
+-2835399305386018931,other,601,0,0.2623640000000001,COMMIT,False
+-2969766663128965394,other,601,0,2.816286999999997,BEGIN ISOLATION LEVEL READ COMMITTED,False
+-3380238861448734306,other,601,1803,37.477203000000024,"UPDATE ingredients i
+      SET on_hand = i.on_hand - r.units_per_item * $2::integer, revision = i.revision + $3
+      FROM recipe_ingredients r WHERE r.ingredient_id = i.id AND r.menu_item_id = $1",False
+8635107437525306164,other,601,601,42.56499900000004,"INSERT INTO orders (id, menu_item_id, quantity, unit_price_cents)
+      SELECT $1::uuid, id, $3::integer, price_cents FROM menu_items WHERE id = $2
+      ON CONFLICT (id) DO NOTHING RETURNING id",False
+8842682348451288030,other,601,601,56.82275399999996,"UPDATE orders SET stock_version_after = snapshot.version, sellable_units_after = snapshot.units
+      FROM (
+        SELECT SUM(i.revision) AS version, MIN(i.on_hand / r.units_per_item) AS units
+        FROM recipe_ingredients r JOIN ingredients i ON i.id = r.ingredient_id
+        WHERE r.menu_item_id = $2
+      ) snapshot
+      WHERE orders.id = $1
+      RETURNING 
+  id AS ""orderId"", menu_item_id AS ""itemId"", quantity, unit_price_cents AS ""unitPriceCents"",
+  stock_version_after::text AS ""stockVersionAfter"", sellable_units_after AS ""sellableUnitsAfter""",False

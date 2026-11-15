@@ -1,0 +1,6 @@
+observed_at,probe_id,item_id,result,acknowledged_version,observed_version,acknowledged_units,observed_units,overstates_units,ack_to_read_ms
+2026-11-14T02:06:49.758337971-05:00,0,41,at_least_ack,3,3,499999,499999,false,1
+2026-11-14T02:06:51.74835996-05:00,1,64,at_least_ack,5,5,499998,499998,false,1
+2026-11-14T02:06:53.748607271-05:00,2,64,at_least_ack,14,14,499995,499995,false,1
+2026-11-14T02:06:55.748872402-05:00,3,64,at_least_ack,20,20,499993,499993,false,1
+2026-11-14T02:06:57.749630164-05:00,4,1,at_least_ack,31,31,499989,499989,false,1

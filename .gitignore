@@ -1,0 +1,13 @@
+.env
+.venv/
+node_modules/
+__pycache__/
+.DS_Store
+paper/*.aux
+paper/*.bbl
+paper/*.blg
+paper/*.fls
+paper/*.fdb_latexmk
+paper/*.log
+paper/*.out
+results/runs/

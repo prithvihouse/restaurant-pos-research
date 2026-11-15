@@ -1,0 +1,4 @@
+run_id,profile,workload,vus,repeat,mode,endpoint,started,recorded,completed_in_window,http_responses_in_window,completed_in_drain,successful,business_rejections,failure_responses,incomplete,failure_rate,business_rejection_rate,completed_rps,http_responses_rps,successful_rps,mean_ms,median_ms,p95_ms
+exploratory-freshness-10vu-r2-B,exploratory,freshness,10,2,B,all,897,897,897,897,0,897,0,0,0,0.0,0.0,89.7,89.7,89.7,1.7981440423634338,1.297326,4.619124
+exploratory-freshness-10vu-r2-B,exploratory,freshness,10,2,B,menu_item,716,716,716,716,0,716,0,0,0,0.0,0.0,71.6,71.6,71.6,1.320432217877095,1.0817160000000001,2.916549
+exploratory-freshness-10vu-r2-B,exploratory,freshness,10,2,B,order_create,181,181,181,181,0,181,0,0,0,0.0,0.0,18.1,18.1,18.1,3.6878770055248618,3.471173,5.668782

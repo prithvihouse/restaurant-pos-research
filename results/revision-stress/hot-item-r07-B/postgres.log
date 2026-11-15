@@ -1,0 +1,10 @@
+2026-11-14 13:10:38.378 EST [2006] LOG:  starting PostgreSQL 17.11 (Debian 17.11-0+deb13u1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+2026-11-14 13:10:38.378 EST [2006] LOG:  listening on IPv4 address "127.0.0.1", port 35301
+2026-11-14 13:10:38.379 EST [2010] LOG:  database system was shut down at 2026-11-14 13:10:38 EST
+2026-11-14 13:10:38.380 EST [2006] LOG:  database system is ready to accept connections
+2026-11-14 13:10:40.663 EST [2006] LOG:  received smart shutdown request
+2026-11-14 13:10:40.665 EST [2006] LOG:  background worker "logical replication launcher" (PID 2013) exited with exit code 1
+2026-11-14 13:10:40.665 EST [2008] LOG:  shutting down
+2026-11-14 13:10:40.665 EST [2008] LOG:  checkpoint starting: shutdown immediate
+2026-11-14 13:10:40.670 EST [2008] LOG:  checkpoint complete: wrote 1002 buffers (6.1%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.005 s, sync=0.001 s, total=0.006 s; sync files=328, longest=0.001 s, average=0.000 s; distance=5029 kB, estimate=5029 kB; lsn=0/19F4D70, redo lsn=0/19F4D70
+2026-11-14 13:10:40.674 EST [2006] LOG:  database system is shut down

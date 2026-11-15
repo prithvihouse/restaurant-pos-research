@@ -1,0 +1,74 @@
+\section{Results}
+
+\subsection{Correctness and Availability}
+
+Table~\ref{tab:correctness} reports the three correctness workloads. In the forced schedule, all 10 follow-up GETs in C returned the obsolete value after the delayed refill. A and D returned the committed availability in all 10 follow-up GETs per mode. D counted one rejected refill per trial. The original delayed GET still returned the older SQL snapshot in every mode. The distinction matters because the correctness property concerns what the delayed reader leaves in Redis for a subsequent customer.
+
+\begin{table}[t]
+\centering
+\caption{Correctness outcomes across ten trials per reported mode and workload. Counts are pooled for description. Browsers within each stockout round share a single sale.}
+\label{tab:correctness}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}c r r r@{}}
+\toprule
+Mode & \shortstack{Stale forced\\follow-up} & \shortstack{False-positive\\checkout} & \shortstack{Stale hot-item\\GETs} \\
+\midrule
+\input{tables/correctness-rows}
+\end{tabular}
+\end{table}
+
+In the stockout trial dataset, eight browsers per round could attempt to order only if the one-portion display remained. TTL-only B produced 80 attributable stockout rejections in 80 browsing sessions. A, C, and D produced none in their 80 sessions each. Their browsers saw zero available portions and never issued the checkout. The 80 decisions in each mode are grouped in ten shared-inventory trials. Each trial passed the inventory audit, and only the two initiating sales committed. The test confirms that a correct database rejection can still follow a misleading item display.
+
+\input{sections/measured-freshness}
+
+\subsection{Arrival-Rate Screen and Repeated Comparison}
+
+Fig.~\ref{fig:screen} shows the screening pass. All four modes met the screening criterion up to 2{,}400 requests/s. In its single 4{,}800 requests/s screen, D delivered 87.36\% of offered requests and recorded 1{,}810 dropped iterations. This selected the rate for repeated confirmation. At 8{,}000 requests/s, all modes missed the 95\% delivery threshold. The individual screening runs locate pressure for this host and driver.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{open_screen}
+\caption{Open-loop rate screen. Each point represents one three-second trial. The dotted line marks target delivery.}
+\label{fig:screen}
+\end{figure}
+
+\begin{table*}[t]
+\centering
+\caption{Open-loop comparison at a three-second TTL. Each row summarizes ten trials. GET and POST columns are medians of per-trial P95 among successful responses. The criterion requires at least 95\% in-window delivery and at most 50\,ms overall P95.}
+\label{tab:performance}
+\setlength{\tabcolsep}{6pt}
+\begin{tabular}{@{}l c r r r r r c@{}}
+\toprule
+Offered req/s & Mode & GET P95 (ms) & POST P95 (ms) & Successful req/s & Dropped (\%) & Menu SELECTs/1,000 GETs & Passes \\
+\midrule
+\input{tables/performance-rows}
+\end{tabular}
+\end{table*}
+
+\begin{table*}[t]
+\centering
+\caption{Paired changes at 4{,}800 offered requests/s. Differences are candidate minus baseline within each repeat, summarized by the median and its 95\% percentile bootstrap interval.}
+\label{tab:paired}
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+Contrast & GET P95 (ms) & POST P95 (ms) & Delivery (percentage points)\\
+\midrule
+\input{tables/paired-rows}
+\end{tabular}
+\end{table*}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{open_latency}
+\caption{Median per-trial endpoint P95 at matched offered rates. Whiskers show 95\% percentile bootstrap intervals over trials.}
+\label{fig:latency}
+\end{figure}
+
+\input{sections/measured-performance}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{ttl_sweep}
+\caption{TTL sensitivity at 600 offered requests/s. Points show medians from ten 12-second trials per cell. Whiskers show 95\% percentile bootstrap intervals over trials.}
+\label{fig:ttl}
+\end{figure}

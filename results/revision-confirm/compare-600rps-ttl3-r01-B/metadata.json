@@ -1,0 +1,59 @@
+{
+  "run_id": "compare-600rps-ttl3-r01-B",
+  "cell": "compare",
+  "repeat": 1,
+  "mode": "B",
+  "cache_ttl_s": 3,
+  "offered_rps": 600,
+  "measure_s": 5,
+  "warmup_s": 2,
+  "workload_seed": 6212027,
+  "hardware": {
+    "os": "Linux-6.18.57-x86_64-with-glibc2.41",
+    "machine": "x86_64",
+    "cpu_model": "AMD EPYC 9V74 80-Core Processor",
+    "os_cpu_count": 9,
+    "affinity_cpu_count": 9,
+    "meminfo": "MemTotal:       10206472 kB",
+    "cgroup_reported": {},
+    "python": "3.12.14"
+  },
+  "versions": {
+    "node": "v24.22.1",
+    "postgres": "postgres (PostgreSQL) 17.11 (Debian 17.11-0+deb13u1)",
+    "redis": "Redis server v=8.0.2 sha=00000000:0 malloc=jemalloc-5.3.0 bits=64 build=b843bbd074c0e1da",
+    "k6": "k6 v2.3.0 (commit/e088784614, go1.26.8, linux/amd64)",
+    "api_dependencies": {
+      "express": "4.21.2",
+      "pg": "8.14.1",
+      "redis": "4.5.1"
+    }
+  },
+  "harness_sha256": "f4991f6e2188debad8dbefd98cc6ff8edb309f56c3d614baa2f5cd3df53a6ff0",
+  "sources_sha256": {
+    "backend/server.js": "418decec84ec89a0cf38a1ca164114022592017285dc6b163c8d2020fae89cee",
+    "backend/refill_gate.js": "1deccc9a3403dd6edcd8db81bf90e952404fc43db4b6de56bcf15d1cd3a8770e",
+    "backend/lua/fill.lua": "474b82db015ab1b7633ea7ff5dc77b0c20fbb75dfea3e2e3261e434f3c832388",
+    "backend/lua/invalidate.lua": "80d608657b41c3796b5bd945d10a37fe3006e7674d6546bb8598e0c3ecd8c906",
+    "backend/package-lock.json": "13be2a1c08aba3fa4a7df27914ead01da33c316b46b482aa0dbc42a6426e3d81",
+    "database/init/001-schema.sql": "5b6937eefebb25d429a7b6a7db88bf4271213bcfa39b7039df894808726ff9bc"
+  },
+  "execution": "local_process",
+  "started_at": "2026-11-14T17:40:36.227403+00:00",
+  "status": "complete",
+  "warmup_rps": 300,
+  "allocated_vus": 128,
+  "measured_command_started_at": "2026-11-14T17:40:39.582826+00:00",
+  "k6_cpu_s": 2.1797770000000023,
+  "k6_process_elapsed_s": 5.069902041999967,
+  "measured_command_finished_at": "2026-11-14T17:40:44.739106+00:00",
+  "inventory_audit": {
+    "valid": true,
+    "ingredient_count": 150,
+    "mismatched_ingredient_ids": [],
+    "committed_orders": 600,
+    "incomplete_receipts": 0
+  },
+  "dataset_sha256": "260486be24c4cabab3c84ff55f71ec4ac66bb1d9f7d6216338fae1b47e974cc8",
+  "finished_at": "2026-11-14T17:40:44.986523+00:00"
+}

@@ -1,0 +1,6 @@
+tablename,indexname,indexdef
+ingredients,ingredients_pkey,CREATE UNIQUE INDEX ingredients_pkey ON public.ingredients USING btree (id)
+menu_items,menu_items_pkey,CREATE UNIQUE INDEX menu_items_pkey ON public.menu_items USING btree (id)
+orders,orders_pkey,CREATE UNIQUE INDEX orders_pkey ON public.orders USING btree (id)
+recipe_ingredients,recipe_ingredients_by_ingredient,"CREATE INDEX recipe_ingredients_by_ingredient ON public.recipe_ingredients USING btree (ingredient_id, menu_item_id)"
+recipe_ingredients,recipe_ingredients_pkey,"CREATE UNIQUE INDEX recipe_ingredients_pkey ON public.recipe_ingredients USING btree (menu_item_id, ingredient_id)"

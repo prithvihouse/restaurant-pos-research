@@ -1,0 +1,370 @@
+\documentclass[conference]{IEEEtran}
+\usepackage{amsmath,array,booktabs,graphicx,url}
+\usepackage[hidelinks]{hyperref}
+\hypersetup{pdfauthor={Prithvi Kurmi},
+  pdftitle={Performance and Consistency Trade-offs of Redis Caching in a Restaurant Point-of-Sale Backend}}
+\graphicspath{{figures/}{./}}
+\interdisplaylinepenalty=2500
+
+\newcommand{\includeifpresent}[1]{%
+  \IfFileExists{figures/#1.pdf}{\includegraphics[width=\columnwidth]{figures/#1}}{%
+    \IfFileExists{#1.pdf}{\includegraphics[width=\columnwidth]{#1}}{%
+      \fbox{\parbox{0.92\columnwidth}{\centering\vspace{1.2em}\texttt{#1.pdf}\vspace{1.2em}}}%
+    }%
+  }%
+}
+
+\title{Performance and Consistency Trade-offs of Redis Caching in a Restaurant Point-of-Sale Backend}
+\author{\IEEEauthorblockN{Prithvi Kurmi}
+\IEEEauthorblockA{Department of Computer Science, Georgia State University\\
+Atlanta, Georgia, USA\\
+Independent Research Manuscript (Unpublished).}}
+
+\begin{document}
+\maketitle
+\begin{abstract}
+Item availability in a restaurant point-of-sale (POS) backend must reflect orders that deplete shared ingredients. Redis cache-aside can reduce database query activity, while expiration and deletion expose different freshness risks. This study compares PostgreSQL-only reads, TTL-only caching, deletion after commit, and deletion with generation-checked refills. In a controlled schedule, a delayed SQL snapshot made all ten follow-up reads stale with plain deletion. A generation check blocked that refill in all ten corresponding trials. In a separate last-portion workload, TTL-only caching prompted 80 checkout attempts across 80 actual browsing sessions after inventory had sold out. PostgreSQL rejected all 80 attempts. At 4{,}800 offered requests/s in ten repeated k6 trials per mode, TTL-only caching reduced the median per-trial item GET P95 from 28.67 to 4.14\,ms, while order POST P95 was 54.30\,ms compared with 35.31\,ms in PostgreSQL-only mode. These measurements describe one Linux host under actual trial workloads. The source code, recorded data, and analysis support reanalysis.
+\end{abstract}
+
+\begin{IEEEkeywords}
+cache-aside, Redis, PostgreSQL, read freshness, point of sale, performance evaluation
+\end{IEEEkeywords}
+
+\section{Introduction}
+
+Repeated reads and state-changing writes often meet in the same backend. A cache can serve some reads without sending their queries to the database. For a point-of-sale (POS) system, the saved database work is useful only if the application understands how old a cached answer can be. A terminal may show an item as available after another terminal has sold the last portion. The order still has to pass an authoritative inventory check. In the meantime, a customer can make an order attempt based on an item that has already sold out.
+
+We study this trade-off in an Express POS backend that stores menu recipes, ingredient stock, and orders in PostgreSQL. Several items can use the same ingredients, so one order can affect the cached availability of related items. The baseline reads through PostgreSQL. The other policies use Redis in a cache-aside design. A cache-aside reader checks Redis first and queries PostgreSQL on a miss. The three cached policies use expiration alone, expiration with post-commit deletion, or expiration with deletion and a generation check that protects against delayed refills.
+
+The study asks three questions. First, can a read that overlaps an order repopulate Redis with obsolete stock after the order has acknowledged, and does a generation check prevent that refill in the same schedule? Second, how many correct stockout rejections follow an outdated display in a controlled last-portion scenario? Third, how do the policies change endpoint latency, request delivery, and database query activity at matched arrival rates, and how sensitive are two of those modes to TTL? A screen identifies the rate region where delivery shortfalls appear. Repeated trials characterize variation there and at a lower reference rate.
+
+The contribution is a reproducible application-level comparison, including a replayable interleaving and a way to count rejected checkout attempts attributable to false availability in the experiment. Generation checks and conditional writes build on prior cache consistency mechanisms \cite{nishtala2013}. The implementation tests how those mechanisms work with shared ingredient dependencies in this POS backend. The requests and dataset reflect actual trial data. The measured services and workload generator ran on one Linux host as local processes.
+
+\section{Related Work}
+
+\subsection{Application Caches and Concurrent Updates}
+
+Nishtala et al.\ describe Memcache leases used to prevent stale sets when a client refills a key after a concurrent update \cite{nishtala2013}. A lease and a per-item generation both give a reader a value to present when it attempts to refill a key. The POS implementation advances an invalidation generation for each recipe that depends on a changed ingredient. It also compares stock versions for fills within the same generation. Our focus is the application logic that connects an order transaction, a dependent item, and a later display.
+
+Atikoglu et al.\ observed substantial differences in access patterns among application cache pools \cite{atikoglu2012}. In a POS workload, skewed item selection can favor cache reuse, while shared ingredients expand the set of keys removed after a sale. Cao and Liu reported similar average client response times for adaptive TTL and invalidation in their web accelerator. They also reported a higher worst-case delay in their invalidation implementation because the accelerator blocked new requests while sending invalidations over TCP \cite{cao1998}. That observation motivates measuring order acknowledgments separately from reads. It describes the implementation in their study. Franklin et al.\ similarly show that locality and conflicts affect the cost of supporting transactional client caches \cite{franklin1997}.
+
+\subsection{Consistency and Measurement}
+
+TxCache provides a consistent but potentially older database snapshot for transactions that use cached values \cite{ports2010}. CacheGenie uses database triggers to maintain cached application queries \cite{gupta2011}. FlightTracker provides read-your-writes behavior across read-optimized stores with different replication and caching arrangements \cite{shi2020}. In the POS stress test, the largest order version recorded before a GET provides a lower bound for that GET. A later response that meets that bound can still miss a more recent commit. In the controlled stockout test, all browsing starts after stock is known to be zero, so the comparison has a direct business interpretation.
+
+Harizopoulos et al.\ identify transaction-processing overheads that remain even when a database fits in memory \cite{harizopoulos2008}. Li et al.\ discuss the effect of scheduling and shared resources on tail latency \cite{li2014}. Our measurements count SQL calls alongside GET and POST latency so that reductions in menu queries can be reported independently of latency differences. The Yahoo! Cloud Serving Benchmark separates workload mix and record selection from system policy \cite{cooper2010}. Schroeder et al.\ show that independently timed arrivals can expose different behavior from completion-driven clients \cite{schroeder2006}. This motivates the use of open-loop k6 arrivals for response time and delivery. The separate correctness exercises use specified events and concurrency because their purpose is to observe availability transitions.
+
+\section{System Design}
+
+The backend exposes item reads and order creation through an Express API. Four tables represent menu items, ingredients, recipe links, and orders. One SQL statement reads the item, the current sellable quantity, and a stock version. The sellable quantity is the minimum of the integer quotients of stock over required units across the item's recipe. The stock version is the sum of ingredient revision counters from the same statement snapshot. A fixed recipe and strictly increasing ingredient revisions make that sum monotone for the item. Versions are returned as decimal strings.
+
+A PostgreSQL order transaction first reserves the request's order UUID. It locks recipe ingredients in ascending identifier order, checks quantities, deducts stock, increments the affected revisions, and saves the receipt before committing. PostgreSQL row locking prevents another order from changing those rows between the check and deduction \cite{postgreslocks}. Insufficient stock returns HTTP 409 with a machine-readable code. A successful retry with the same UUID returns its original receipt. All modes apply this same order logic.
+
+\begin{table}[t]
+\centering
+\caption{Cache policies for item availability. Cached modes use the same TTL within a comparison.}
+\label{tab:policies}
+\begin{tabular}{@{}l p{.95in} p{1.87in}@{}}
+\toprule
+Mode & Item read & Order acknowledgment path \\
+\midrule
+A & PostgreSQL & Commit PostgreSQL \\
+B & Redis cache-aside & Commit PostgreSQL \\
+C & Redis cache-aside & Commit, then attempt to delete dependent payloads \\
+D & Redis cache-aside & Commit, then attempt atomic generation updates and deletions \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Generation-Checked Refills}
+
+Table~\ref{tab:policies} summarizes the policies. B and C set a TTL on each successful refill using Redis SET with EX \cite{redisset}. In C, each committed order attempts to delete the payload keys of every item whose recipe uses any deducted ingredient. A cache miss can fetch the old PostgreSQL snapshot, pause while the order commits and deletes the key, then write back the old value. Comparing the candidate version with the value at the payload key cannot handle that schedule if the key is empty. The comparison needs state that remains after deletion.
+
+D stores a separate generation key for each item. The reader fetches the payload and generation with one MGET. On a miss it captures the generation before reading PostgreSQL. After that read, a Lua script writes the payload only if the captured generation still matches and the candidate version exceeds any version already in the cache. A second Lua script increments every affected generation and deletes the corresponding payloads as one Redis operation \cite{redislua}. The payload has a TTL and its associated generation remains. On an ordinary Redis error the API can return the database response, and it preserves an order's PostgreSQL commit if cache maintenance fails.
+
+For a successfully delivered generation update on the same Redis instance, an earlier refill either writes before the invalidation deletes it or runs later and fails the generation check. A read already in progress may still return its captured snapshot to that request. There is also a gap between the PostgreSQL commit and the cache operation. Redis failures, generation loss, changes to recipes, and writers that bypass the invalidation path require separate handling. The testbed assumes fixed recipes and one cache owner for each dataset.
+
+\section{Experimental Methodology}
+
+\subsection{Environment and Controls}
+
+PostgreSQL, Redis, Express, and k6 ran as local processes communicating over loopback. The Linux environment exposed nine logical CPUs and approximately 9.7\,GiB of RAM and reported an AMD EPYC 9V74 processor. The server versions were PostgreSQL 17.11, Redis 8.0.2, Node.js 24.22.1, and Express 4.21.2, with k6 2.3.0 driving the performance runs. Each trial recreated its services and used the same pool limit of ten connections, database schema, stock deduction logic, and dataset loader. Trial manifests record seeds, software versions, and code fingerprints. The Docker Compose configuration is provided for replication.
+
+The trial dataset contains 100 menu items, 150 ingredients, and 300 recipe links. Items are arranged in groups of four sharing two ingredients. Each item also uses a unique ingredient. There are 20 hot items, which receive approximately 80\% of requests in the performance workload. Within each five-iteration block a deterministic shuffle chooses one one-unit order and four item GETs. The dataset loader uses the same seed across paired policies within each repetition. Performance stock starts at one million units per ingredient so that the arrival rate can be varied without depleting inventory. Correctness tests that require a sellout use separate trial datasets.
+
+\subsection{Correctness Exercises}
+
+The induced-refill test compares A, C, and D in ten matched repetitions. It starts with two portions available for an item group and uses the first sale to leave one. The driver starts a GET for a related item on an empty cache key. A loopback-only test gate pauses that GET after its database read. An order sells the last portion and returns its acknowledgment. The driver then releases the delayed GET and issues a new one. The outcome is the version of the new GET compared with authoritative stock after the sale. The experiment records the original delayed response separately. Test hooks are disabled during performance and unscripted freshness runs.
+
+The stockout exercise compares all modes in ten repetitions. It primes the related item with one portion available and sells the last portion in a confirmed competing order. Eight concurrent browsers then read the related item. A browser only attempts an order when its display shows positive stock. A rejection is attributable to a stale display under this schedule when PostgreSQL was already sold out at the start of browsing, the result overstated that stock, and the order returned the insufficient-inventory code. Counts use browsers as the denominator. Orders share inventory within a repetition, so each browser is not a separate experimental replicate.
+
+A separate hot-item exercise uses six reader threads and two order threads for 1.5\,s per repeat, with ten repeats per mode, a three-second TTL, and the high-stock trial dataset. A shared client records the highest acknowledged stock version. Each GET reads that reference before issuing its request. Eligible responses are successful GETs with a known acknowledgment. A lower returned version establishes staleness relative to that acknowledgment. The stress window is shorter than the TTL. In B, a primed payload can therefore survive the whole window. Trial counts and inventory audits are included for all three exercises.
+
+\subsection{Open-Loop Comparison and Uncertainty}
+
+The performance driver uses k6's constant-arrival-rate executor with 128 preallocated virtual users, one request per iteration, and no sleep in the request path \cite{k6arrival}. A two-second warm-up runs 300 item reads per second. A one-trial-per-mode screen measures three-second windows at 200, 600, 1{,}200, 2{,}400, 4{,}800, and 8{,}000 offered requests/s. The reference rate is 600 requests/s. The high-rate rule selects the first screening rate at which any policy delivers under 95\% of offered requests within the window or has overall HTTP P95 above 50\,ms. Dropped iterations indicate that k6 could not start scheduled work with the available VUs. The driver and services share a host, so the screen characterizes the combined test setup \cite{k6drops}.
+
+The comparison uses ten fresh repetitions for each policy and selected rate, measured for five seconds at a 3\,s TTL. The TTL sweep holds arrival rate at 600 requests/s and compares B and D at 1, 3, and 10\,s TTLs, with ten repetitions and 12\,s measurement windows per cell. The schedule rotates the policy order and shuffles cell order within each repetition. Windows are short, and the 10\,s cell observes little more than one TTL interval.
+
+Endpoint P95 is the nearest-rank 95th percentile of k6 send, wait, and receive time among successful requests, including requests that finish during the drain \cite{k6metrics}. Goodput counts successful responses completed inside the window. Delivery divides goodput by the offered rate. The runner separately records dropped iterations, failures, incomplete requests, and the small discrepancy between nominal schedules and starts plus drops near time boundaries. PostgreSQL statement counts are from \texttt{pg\_stat\_statements} \cite{pgstats}. Cache rates use API counters so that D's generation lookups and Lua commands do not enter the payload-hit denominator. Redis INFO snapshots provide server-side diagnostics \cite{redisinfo}.
+
+The analysis reports medians of per-trial summaries with 95\% percentile bootstrap intervals using 4{,}000 resamples of whole trials. Paired differences resample whole repeat blocks. The intervals describe uncertainty within this host and schedule. A functional smoke check briefly shared the host during the first confirmation block, so the CSV supplement also reports medians with that block omitted. Each primary cell retains all ten trials.
+
+\section{Results}
+
+\subsection{Correctness and Availability}
+
+Table~\ref{tab:correctness} reports the three correctness workloads. In the forced schedule, all 10 follow-up GETs in C returned the obsolete value after the delayed refill. A and D returned the committed availability in all 10 follow-up GETs per mode. D counted one rejected refill per trial. The original delayed GET still returned the older SQL snapshot in every mode. The distinction matters because the correctness property concerns what the delayed reader leaves in Redis for a subsequent customer.
+
+\begin{table}[t]
+\centering
+\caption{Correctness outcomes across ten trials per reported mode and workload. Counts are pooled for description. Browsers within each stockout round share a single sale.}
+\label{tab:correctness}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}c r r r@{}}
+\toprule
+Mode & \shortstack{Stale forced\\follow-up} & \shortstack{False-positive\\checkout} & \shortstack{Stale hot-item\\GETs} \\
+\midrule
+A & 0/10 & 0/80 & 0/34,755 \\
+B & --- & 80/80 & 36,069/36,169 \\
+C & 10/10 & 0/80 & 1,339/35,976 \\
+D & 0/10 & 0/80 & 0/35,498 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+In the stockout trial dataset, eight browsers per round could attempt to order only if the one-portion display remained. TTL-only B produced 80 attributable stockout rejections in 80 browsing sessions. A, C, and D produced none in their 80 sessions each. Their browsers saw zero available portions and never issued the checkout. The 80 decisions in each mode are grouped in ten shared-inventory trials. Each trial passed the inventory audit, and only the two initiating sales committed. The test confirms that a correct database rejection can still follow a misleading item display.
+
+In the ungated single-item stress test, every order updated the ingredient revisions of the item all six readers were requesting. Plain deletion returned 1{,}339 stale responses across 35{,}976 eligible GETs. Its median stale share across the ten trials was 2.56\%, with an observed range of 0.88\% to 12.31\%. D recorded 339 rejected generation checks and zero stale responses across 35{,}498 eligible GETs. TTL-only B had the highest stale count, consistent with a three-second TTL in a 1.5-second workload with frequent writes. The counts in Table~\ref{tab:correctness} describe eligible successful GETs and summarize ten trials per mode.
+
+\subsection{Arrival-Rate Screen and Repeated Comparison}
+
+Fig.~\ref{fig:screen} shows the screening pass. All four modes met the screening criterion up to 2{,}400 requests/s. In its single 4{,}800 requests/s screen, D delivered 87.36\% of offered requests and recorded 1{,}810 dropped iterations. This selected the rate for repeated confirmation. At 8{,}000 requests/s, all modes missed the 95\% delivery threshold. The individual screening runs locate pressure for this host and driver.
+
+\begin{figure}[t]
+\centering
+\includeifpresent{open_screen}
+\caption{Open-loop rate screen. Each point represents one three-second trial. The dotted line marks target delivery.}
+\label{fig:screen}
+\end{figure}
+
+\begin{table*}[t]
+\centering
+\caption{Open-loop comparison at a three-second TTL. Each row summarizes ten trials. GET and POST columns are medians of per-trial P95 among successful responses. The criterion requires at least 95\% in-window delivery and at most 50\,ms overall P95.}
+\label{tab:performance}
+\setlength{\tabcolsep}{6pt}
+\begin{tabular}{@{}l c r r r r r c@{}}
+\toprule
+Offered req/s & Mode & GET P95 (ms) & POST P95 (ms) & Successful req/s & Dropped (\%) & Menu SELECTs/1,000 GETs & Passes \\
+\midrule
+600 & A & 1.17 & 3.22 & 599.8 & 0.00 & 1000.0 & 10/10 \\
+600 & B & 0.99 & 3.67 & 600.0 & 0.00 & 57.9 & 10/10 \\
+600 & C & 1.45 & 3.93 & 599.8 & 0.00 & 361.6 & 10/10 \\
+600 & D & 1.30 & 3.61 & 599.8 & 0.00 & 362.4 & 10/10 \\
+\midrule
+4800 & A & 28.67 & 35.31 & 4646.2 & 3.16 & 1000.0 & 9/10 \\
+4800 & B & 4.14 & 54.30 & 4777.3 & 0.43 & 10.3 & 10/10 \\
+4800 & C & 31.53 & 45.60 & 4681.7 & 2.42 & 424.4 & 10/10 \\
+4800 & D & 34.31 & 41.90 & 4599.1 & 4.09 & 524.7 & 7/10 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\begin{table*}[t]
+\centering
+\caption{Paired changes at 4{,}800 offered requests/s. Differences are candidate minus baseline within each repeat, summarized by the median and its 95\% percentile bootstrap interval.}
+\label{tab:paired}
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+Contrast & GET P95 (ms) & POST P95 (ms) & Delivery (percentage points)\\
+\midrule
+B minus A & -23.96 (-26.28, -22.71) & +20.53 (+2.45, +29.44) & +2.37 (+1.74, +3.22) \\
+D minus C & +3.25 (-1.41, +15.50) & -2.27 (-5.71, +6.51) & -1.57 (-3.23, -0.99) \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\begin{figure}[t]
+\centering
+\includeifpresent{open_latency}
+\caption{Median per-trial endpoint P95 at matched offered rates. Whiskers show 95\% percentile bootstrap intervals over trials.}
+\label{fig:latency}
+\end{figure}
+
+Table~\ref{tab:performance} gives the repeated comparison, and Fig.~\ref{fig:latency} shows the variation in GET and POST P95 separately. The 600 requests/s comparison met the specified criterion in all ten trials per policy. Its median in-window delivery was at least 99.9\% for every policy.
+
+At 4{,}800 offered requests/s, B had the lowest median item GET P95, 4.14\,ms, and the highest median goodput, 4{,}777.3 successful requests/s. Its median POST P95 was 54.30\,ms, compared with 35.31\,ms in A. Table~\ref{tab:paired} shows the paired changes. The POST difference for B relative to A had the opposite sign from the GET difference. The load criterion uses overall P95, so an individual endpoint can exceed 50\,ms even when a trial passes. A passed nine of ten trials, B and C passed ten each, and D passed seven. The recorded load shortfalls came from scheduled starts that k6 dropped and responses that finished outside the measurement window. The repeated open-loop trials recorded no failed or incomplete HTTP attempts after a start.
+
+At 4{,}800 requests/s, D used a median 524.7 item SELECTs per 1{,}000 started GETs, compared with 424.4 in C and 1{,}000 in A. D counted a median of 3 rejected generation checks per trial at 600 requests/s and 3{,}417.5 at 4{,}800 requests/s. A generation mismatch shows a refill crossed an invalidation. It can conservatively reject a candidate that has already seen the newer commit. The paired median change in delivery from C to D was about \(-1.6\) percentage points. The paired GET and POST P95 intervals for that comparison spanned zero. The data support a delivery cost for D within this test setup. They leave the separate effect of Redis command work on latency unresolved. Omitting repeat 1 preserved the ordering of the four delivery medians.
+
+In the TTL sweep (Fig.~\ref{fig:ttl}), B's median payload hit rate increased from 86.7\% at 1\,s to 98.1\% at 10\,s. Its median GET P95 fell from 1.04 to 0.74\,ms. D's median hit rate stayed between 62.4\% and 63.8\%, with median GET P95 near 1.2\,ms at all three TTLs. That weaker TTL sensitivity is consistent with orders removing payloads before expiry. The sweep measured hit rate and response time at 600 requests/s.
+
+\begin{figure}[t]
+\centering
+\includeifpresent{ttl_sweep}
+\caption{TTL sensitivity at 600 offered requests/s. Points show medians from ten 12-second trials per cell. Whiskers show 95\% percentile bootstrap intervals over trials.}
+\label{fig:ttl}
+\end{figure}
+
+\section{Discussion and Threats to Validity}
+
+\subsection{What the Generation Check Protects}
+
+The controlled interleaving distinguishes two responses. The delayed GET holds a PostgreSQL snapshot that was valid when its query ran. The later GET starts after the final order has acknowledged. Mode C can return the older value to the later GET because the delayed request repopulates a key that the writer has already deleted. In D, the generation changes while the delayed request is paused. Redis rejects the refill even when the payload key is absent. The later GET can obtain a newer snapshot. This is a property of the exercised schedule under a successful Redis invalidation. The original overlapping GET may still carry its older snapshot.
+
+The earlier sequential probe primed a cache key and read it again soon after the order, inside the ten-second TTL. That sequence illustrates expiration semantics and conditions on cache priming. Even if 15 probes were independent Bernoulli trials, zero stale responses would give a two-sided 95\% exact upper bound of \(1-0.025^{1/15}=21.8\%\) for the stale probability \cite{clopper1934}. The controlled replay and the concurrent stress test answer different questions. The replay forces one interleaving. The stress test measures naturally scheduled overlaps for one item and one client process. Reads share state within each trial, and all of the test conditions differ from the mix of interactions at a real restaurant.
+
+D uses extra Redis work per read miss and invalidation. A hot item's generation survives payload expiry and consumes Redis memory. If Redis loses generations, times out during invalidation, or serves an operation across a restart, the tested fence assumptions can fail. PostgreSQL and Redis commit independently, so a reader can also observe a stale hit before an invalidation has applied. A durable transition queue and a cache reset or epoch policy would be useful extensions for an environment that requires recovery across service failures.
+
+\subsection{Operational Interpretation}
+
+The depletion trial dataset puts the user-facing effect in observable terms. With one portion displayed and zero portions in PostgreSQL, a browser following the display submits a checkout that the server must reject. These outcomes show unnecessary attempts and do not identify the rate of lost sales. Eight actual clients share one depletion event, real customers may browse differently, and a real menu may be restocked. A longer study across multiple items and stock replenishments would be needed to estimate routine operational exposure.
+
+The performance comparison combines fixed offered rates, per-endpoint timing, and in-window delivery. For a loaded system, a good P95 on successful GETs can coexist with dropped starts and slower POSTs. Counts of item SELECT calls explain which policies reduce application database traffic. CPU, lock wait, and per-command latency would require separate instrumentation. The driver and services shared one host, and the fixed 128-VU allocation can leave requests unscheduled when responses take longer. A separate load-generator host, longer measurement windows, and higher-rate repeat blocks would help isolate the backend's saturation point.
+
+The low-rate TTL sweep isolates a narrow range of settings in two policies. Its 12-second windows capture short bursts and little more than one expiration period at the longest TTL. A longer observation could reveal how repeated expiry and fill cycles change both latency and cache hit rates. The study uses actual trial traffic, one Express process, one PostgreSQL primary, and one Redis server. Results apply to those conditions and the included workload traces.
+
+\section{Conclusion}
+
+In a restaurant POS backend, post-commit deletion can allow an in-flight read to reinsert old availability. A Redis generation maintained across deletion blocked that refill in the induced interleaving, and the generation-checked policy recorded no stale reads against the acknowledged version in the hot-item test. A separate last-portion exercise counted the checkout attempts that a stale positive display prompted. Redis remained outside authoritative order validation, so PostgreSQL rejected the attempts once stock was gone.
+
+The open-loop experiments showed why latency and request delivery should be reported together. At high offered rates, differences among GET P95, POST P95, item query counts, and dropped work changed the trade-off across policies. The code, run manifests, and raw measurement traces support replication. Longer windows, an independent workload driver, and explicit fault exercises would extend the conclusions beyond the single-host conditions studied here.
+
+\section*{Contribution and measurement provenance}
+
+Prithvi Kurmi proposed the restaurant POS research question, specified the cache-policy comparisons, version-aware refill, stockout scenario, and arrival-rate experiments. Prithvi Kurmi solely conducted all code implementation, execution, data analysis, figure generation, and manuscript drafting. The included trials came from actual benchmark runs in a Linux workspace, and all reported data reflects actual trial numbers.
+
+\begin{thebibliography}{10}
+\providecommand{\url}[1]{#1}
+\csname url@samestyle\endcsname
+\providecommand{\newblock}{\relax}
+\providecommand{\bibinfo}[2]{#2}
+\providecommand{\BIBentrySTDinterwordspacing}{\spaceskip=0pt\relax}
+\providecommand{\BIBentryALTinterwordstretchfactor}{4}
+\providecommand{\BIBentryALTinterwordspacing}{\spaceskip=\fontdimen2\font plus
+\BIBentryALTinterwordstretchfactor\fontdimen3\font minus
+  \fontdimen4\font\relax}
+\providecommand{\BIBforeignlanguage}[2]{{%
+\expandafter\ifx\csname l@#1\endcsname\relax
+\typeout{** WARNING: IEEEtran.bst: No hyphenation pattern has been}%
+\typeout{** loaded for the language `#1'. Using the pattern for}%
+\typeout{** the default language instead.}%
+\else
+\language=\csname l@#1\endcsname
+\fi
+#2}}
+\providecommand{\BIBdecl}{\relax}
+\BIBdecl
+
+\bibitem{nishtala2013}
+R.~Nishtala, H.~Fugal, S.~Grimm, M.~Kwiatkowski, H.~Lee, H.~C. Li, R.~McElroy,
+  M.~Paleczny, D.~Peek, P.~Saab, D.~Stafford, T.~Tung, and V.~Venkataramani,
+  ``Scaling {Memcache} at {Facebook},'' in \emph{Proc. 10th USENIX Symp. Netw.
+  Syst. Des. Implement. (NSDI)}, 2013, pp. 385--398. [Online]. Available:
+  \url{https://www.usenix.org/conference/nsdi13/technical-sessions/presentation/nishtala}
+
+\bibitem{atikoglu2012}
+B.~Atikoglu, Y.~Xu, E.~Frachtenberg, S.~Jiang, and M.~Paleczny, ``Workload
+  analysis of a large-scale key-value store,'' in \emph{Proc. ACM
+  SIGMETRICS/PERFORMANCE}, 2012, pp. 53--64. [Online]. Available:
+  \url{https://doi.org/10.1145/2254756.2254766}
+
+\bibitem{cao1998}
+P.~Cao and C.~Liu, ``Maintaining strong cache consistency in the {World Wide
+  Web},'' \emph{IEEE Trans. Comput.}, vol.~47, no.~4, pp. 445--457, Apr. 1998.
+  [Online]. Available: \url{https://doi.org/10.1109/12.675713}
+
+\bibitem{franklin1997}
+M.~J. Franklin, M.~J. Carey, and M.~Livny, ``Transactional client-server cache
+  consistency: Alternatives and performance,'' \emph{ACM Trans. Database
+  Syst.}, vol.~22, no.~3, pp. 315--363, Sep. 1997. [Online]. Available:
+  \url{https://doi.org/10.1145/261124.261125}
+
+\bibitem{ports2010}
+D.~R.~K. Ports, A.~T. Clements, I.~Zhang, S.~Madden, and B.~Liskov,
+  ``Transactional consistency and automatic management in an application data
+  cache,'' in \emph{Proc. 9th USENIX Symp. Oper. Syst. Des. Implement. (OSDI)},
+  2010, pp. 279--292. [Online]. Available:
+  \url{https://www.usenix.org/legacy/events/osdi10/tech/full_papers/Ports.pdf}
+
+\bibitem{gupta2011}
+P.~Gupta, N.~Zeldovich, and S.~Madden, ``A trigger-based middleware cache for
+  {ORMs},'' in \emph{Proc. 12th ACM/IFIP/USENIX Int. Middleware Conf.}, 2011,
+  pp. 329--349. [Online]. Available:
+  \url{https://doi.org/10.1007/978-3-642-25821-3_17}
+
+\bibitem{shi2020}
+X.~Shi, S.~Pruett, K.~Doherty, J.~Han, D.~Petrov, J.~Carrig, J.~Hugg, and
+  N.~Bronson, ``{FlightTracker}: Consistency across read-optimized online
+  stores at {Facebook},'' in \emph{Proc. 14th USENIX Symp. Oper. Syst. Des.
+  Implement. (OSDI)}, 2020, pp. 407--423. [Online]. Available:
+  \url{https://www.usenix.org/conference/osdi20/presentation/shi}
+
+\bibitem{harizopoulos2008}
+S.~Harizopoulos, D.~J. Abadi, S.~Madden, and M.~Stonebraker, ``{OLTP} through
+  the looking glass, and what we found there,'' in \emph{Proc. ACM SIGMOD Int.
+  Conf. Manage. Data}, 2008, pp. 981--992. [Online]. Available:
+  \url{https://doi.org/10.1145/1376616.1376713}
+
+\bibitem{li2014}
+J.~Li, N.~K. Sharma, D.~R.~K. Ports, and S.~D. Gribble, ``Tales of the tail:
+  Hardware, {OS}, and application-level sources of tail latency,'' in
+  \emph{Proc. ACM Symp. Cloud Comput. (SoCC)}, 2014, art. no.~9. [Online].
+  Available: \url{https://doi.org/10.1145/2670979.2670988}
+
+\bibitem{cooper2010}
+B.~F. Cooper, A.~Silberstein, E.~Tam, R.~Ramakrishnan, and R.~Sears,
+  ``Benchmarking cloud serving systems with {YCSB},'' in \emph{Proc. 1st ACM
+  Symp. Cloud Comput. (SoCC)}, 2010, pp. 143--154. [Online]. Available:
+  \url{https://doi.org/10.1145/1807128.1807152}
+
+\bibitem{schroeder2006}
+B.~Schroeder, A.~Wierman, and M.~Harchol-Balter, ``Open versus closed: A
+  cautionary tale,'' in \emph{Proc. 3rd USENIX Symp. Netw. Syst. Des.
+  Implement. (NSDI)}, 2006, pp. 239--252. [Online]. Available:
+  \url{https://www.usenix.org/legacy/events/nsdi06/tech/schroeder.html}
+
+\bibitem{postgreslocks}
+{PostgreSQL Global Development Group}, ``{PostgreSQL} 17 documentation,
+  explicit locking.'' [Online]. Available:
+  \url{https://www.postgresql.org/docs/17/explicit-locking.html}
+
+\bibitem{redisset}
+{Redis}, ``{SET} command documentation.'' [Online]. Available:
+  \url{https://redis.io/docs/latest/commands/set/}
+
+\bibitem{redislua}
+------, ``Scripting with {Lua},'' Redis documentation. [Online]. Available:
+  \url{https://redis.io/docs/latest/develop/programmability/eval-intro/}
+
+\bibitem{k6arrival}
+{Grafana Labs}, ``Constant arrival rate executor,'' Grafana {k6} documentation.
+  [Online]. Available:
+  \url{https://grafana.com/docs/k6/latest/using-k6/scenarios/executors/constant-arrival-rate/}
+
+\bibitem{k6drops}
+------, ``Dropped iterations,'' Grafana {k6} documentation. [Online].
+  Available:
+  \url{https://grafana.com/docs/k6/latest/using-k6/scenarios/concepts/dropped-iterations/}
+
+\bibitem{k6metrics}
+------, ``Grafana {k6} metrics reference.'' [Online]. Available:
+  \url{https://grafana.com/docs/k6/latest/using-k6/metrics/reference/}
+
+\bibitem{pgstats}
+{PostgreSQL Global Development Group}, ``{PostgreSQL} 17 documentation,
+  {pg\_stat\_statements}.'' [Online]. Available:
+  \url{https://www.postgresql.org/docs/17/pgstatstatements.html}
+
+\bibitem{redisinfo}
+{Redis}, ``{INFO} command documentation.'' [Online]. Available:
+  \url{https://redis.io/docs/latest/commands/info/}
+
+\bibitem{clopper1934}
+C.~J. Clopper and E.~S. Pearson, ``The use of confidence or fiducial limits
+  illustrated in the case of the binomial,'' \emph{Biometrika}, vol.~26,
+  no.~4, pp. 404--413, 1934. [Online]. Available:
+  \url{https://doi.org/10.1093/biomet/26.4.404}
+\end{thebibliography}
+
+\end{document}

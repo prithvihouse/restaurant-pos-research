@@ -1,0 +1,53 @@
+{
+  "run_id": "exploratory-read-10vu-r3-C",
+  "execution": "local_process",
+  "status": "complete",
+  "started_at": "2026-11-14T07:08:54.818241+00:00",
+  "profile": "exploratory",
+  "workload": "read",
+  "vus": 10,
+  "repeat": 3,
+  "mode": "C",
+  "cache_mode": "ttl-invalidate",
+  "cache_ttl_s": 10,
+  "workload_seed": 6212028,
+  "warmup_s": 3,
+  "measure_s": 8,
+  "settings_sha256": "b49a4f9dea123efc17ead3feeffb867188c0f86e6f2ed956c9e893be486efa30",
+  "harness_sha256": "f4991f6e2188debad8dbefd98cc6ff8edb309f56c3d614baa2f5cd3df53a6ff0",
+  "api_sha256": "ac87dd5bab53c7c8cd9335843bfdc501f04cae6f3f00fa12be7d81e6cc17047e",
+  "app_pool_max_configured": 10,
+  "api_package_lock_sha256": "13be2a1c08aba3fa4a7df27914ead01da33c316b46b482aa0dbc42a6426e3d81",
+  "hardware": {
+    "os": "Linux-6.18.57-x86_64-with-glibc2.41",
+    "machine": "x86_64",
+    "cpu_model": "AMD EPYC 9V74 80-Core Processor",
+    "os_cpu_count": 9,
+    "affinity_cpu_count": 9,
+    "meminfo": "MemTotal:       10206472 kB",
+    "cgroup_reported": {},
+    "python": "3.12.14"
+  },
+  "versions": {
+    "node": "v24.22.1",
+    "postgres": "postgres (PostgreSQL) 17.11 (Debian 17.11-0+deb13u1)",
+    "redis": "Redis server v=8.0.2 sha=00000000:0 malloc=jemalloc-5.3.0 bits=64 build=b843bbd074c0e1da",
+    "k6": "k6 v2.3.0 (commit/e088784614, go1.26.8, linux/amd64)",
+    "api_dependencies": {
+      "express": "4.21.2",
+      "pg": "8.14.1",
+      "redis": "4.5.1"
+    }
+  },
+  "dataset_sha256": "260486be24c4cabab3c84ff55f71ec4ac66bb1d9f7d6216338fae1b47e974cc8",
+  "measured_command_started_at": "2026-11-14T07:08:59.050195+00:00",
+  "measured_command_finished_at": "2026-11-14T07:09:07.107289+00:00",
+  "inventory_audit": {
+    "valid": true,
+    "ingredient_count": 150,
+    "mismatched_ingredient_ids": [],
+    "committed_orders": 0,
+    "incomplete_receipts": 0
+  },
+  "finished_at": "2026-11-14T07:09:07.320384+00:00"
+}

@@ -1,0 +1,29 @@
+\section{System Design}
+
+The backend exposes item reads and order creation through an Express API. Four tables represent menu items, ingredients, recipe links, and orders. One SQL statement reads the item, the current sellable quantity, and a stock version. The sellable quantity is the minimum of the integer quotients of stock over required units across the item's recipe. The stock version is the sum of ingredient revision counters from the same statement snapshot. A fixed recipe and strictly increasing ingredient revisions make that sum monotone for the item. Versions are returned as decimal strings.
+
+A PostgreSQL order transaction first reserves the request's order UUID. It locks recipe ingredients in ascending identifier order, checks quantities, deducts stock, increments the affected revisions, and saves the receipt before committing. PostgreSQL row locking prevents another order from changing those rows between the check and deduction \cite{postgreslocks}. Insufficient stock returns HTTP 409 with a machine-readable code. A successful retry with the same UUID returns its original receipt. All modes apply this same order logic.
+
+\begin{table}[t]
+\centering
+\caption{Cache policies for item availability. Cached modes use the same TTL within a comparison.}
+\label{tab:policies}
+\begin{tabular}{@{}l p{.95in} p{1.87in}@{}}
+\toprule
+Mode & Item read & Order acknowledgment path \\
+\midrule
+A & PostgreSQL & Commit PostgreSQL \\
+B & Redis cache-aside & Commit PostgreSQL \\
+C & Redis cache-aside & Commit, then attempt to delete dependent payloads \\
+D & Redis cache-aside & Commit, then attempt atomic generation updates and deletions \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Generation-Checked Refills}
+
+Table~\ref{tab:policies} summarizes the policies. B and C set a TTL on each successful refill using Redis SET with EX \cite{redisset}. In C, each committed order attempts to delete the payload keys of every item whose recipe uses any deducted ingredient. A cache miss can fetch the old PostgreSQL snapshot, pause while the order commits and deletes the key, then write back the old value. Comparing the candidate version with the value at the payload key cannot handle that schedule if the key is empty. The comparison needs state that remains after deletion.
+
+D stores a separate generation key for each item. The reader fetches the payload and generation with one MGET. On a miss it captures the generation before reading PostgreSQL. After that read, a Lua script writes the payload only if the captured generation still matches and the candidate version exceeds any version already in the cache. A second Lua script increments every affected generation and deletes the corresponding payloads as one Redis operation \cite{redislua}. The payload has a TTL and its associated generation remains. On an ordinary Redis error the API can return the database response, and it preserves an order's PostgreSQL commit if cache maintenance fails.
+
+For a successfully delivered generation update on the same Redis instance, an earlier refill either writes before the invalidation deletes it or runs later and fails the generation check. A read already in progress may still return its captured snapshot to that request. There is also a gap between the PostgreSQL commit and the cache operation. Redis failures, generation loss, changes to recipes, and writers that bypass the invalidation path require separate handling. The testbed assumes fixed recipes and one cache owner for each dataset.

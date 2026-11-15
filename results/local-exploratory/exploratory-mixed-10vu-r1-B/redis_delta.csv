@@ -1,0 +1,2 @@
+valid,get_attribution_ok,hits,misses,get_calls,failed_gets,del_calls,evicted_keys,db0_keys_before,db0_keys_after,hit_rate,miss_rate
+True,True,573,54,627,0,0,0,63,78,0.9138755980861244,0.0861244019138756

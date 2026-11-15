@@ -1,0 +1,13 @@
+{
+  "status": "passed",
+  "verified_at": "2026-11-14T18:11:16.854258+00:00",
+  "checks": [
+    "test gate disabled by default",
+    "initial empty fill",
+    "older and equal fill rejection",
+    "exact comparison above 2**53",
+    "generation retained on deletion",
+    "empty-key stale refill rejection",
+    "new-generation refill"
+  ]
+}

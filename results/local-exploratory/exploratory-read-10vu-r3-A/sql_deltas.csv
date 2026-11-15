@@ -1,0 +1,9 @@
+queryid,kind,calls,rows,total_exec_ms,query,menu_read
+-133942128219106338,select,780,780,43.364157999999904,"SELECT /* pos_menu_item */ m.id AS ""itemId"", m.name, m.price_cents AS ""priceCents"",
+           MIN(i.on_hand / r.units_per_item)::integer AS ""sellableUnits"",
+           SUM(i.revision)::text AS ""stockVersion""
+    FROM menu_items m
+    JOIN recipe_ingredients r ON r.menu_item_id = m.id
+    JOIN ingredients i ON i.id = r.ingredient_id
+    WHERE m.id = $1
+    GROUP BY m.id",True

@@ -1,0 +1,73 @@
+{
+  "purpose": "functional validation outside performance trials",
+  "initial_stock": 2,
+  "cache_ttl_s": 3,
+  "modes": [
+    {
+      "mode": "A",
+      "last_unit_acceptances": 1,
+      "last_unit_rejections": 7,
+      "shared_item_stale_before_expiry": false,
+      "replay_statuses": [
+        200,
+        200,
+        200,
+        200,
+        200,
+        201
+      ],
+      "redis_failure_check": null,
+      "audit": {
+        "valid": true,
+        "ingredient_count": 150,
+        "mismatched_ingredient_ids": [],
+        "committed_orders": 2,
+        "incomplete_receipts": 0
+      }
+    },
+    {
+      "mode": "B",
+      "last_unit_acceptances": 1,
+      "last_unit_rejections": 7,
+      "shared_item_stale_before_expiry": true,
+      "replay_statuses": [
+        200,
+        200,
+        200,
+        200,
+        200,
+        201
+      ],
+      "redis_failure_check": null,
+      "audit": {
+        "valid": true,
+        "ingredient_count": 150,
+        "mismatched_ingredient_ids": [],
+        "committed_orders": 2,
+        "incomplete_receipts": 0
+      }
+    },
+    {
+      "mode": "C",
+      "last_unit_acceptances": 1,
+      "last_unit_rejections": 7,
+      "shared_item_stale_before_expiry": false,
+      "replay_statuses": [
+        200,
+        200,
+        200,
+        200,
+        200,
+        201
+      ],
+      "redis_failure_check": "passed",
+      "audit": {
+        "valid": true,
+        "ingredient_count": 150,
+        "mismatched_ingredient_ids": [],
+        "committed_orders": 3,
+        "incomplete_receipts": 0
+      }
+    }
+  ]
+}

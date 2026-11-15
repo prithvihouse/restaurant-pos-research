@@ -1,0 +1,35 @@
+{
+  "run_id": "race-r06-D",
+  "case": "race",
+  "repeat": 6,
+  "mode": "D",
+  "expected_version": 4,
+  "expected_units": 0,
+  "overlap_version": 2,
+  "overlap_units": 1,
+  "followup_version": 4,
+  "followup_units": 0,
+  "followup_stale": false,
+  "false_positive_display": false,
+  "api_metrics": {
+    "menuDatabaseReads": 2,
+    "cacheHits": 0,
+    "cacheMisses": 2,
+    "cacheGetErrors": 0,
+    "cacheSetErrors": 0,
+    "redisConnectionErrors": 0,
+    "invalidationAttempts": 2,
+    "invalidationErrors": 0,
+    "deletedKeys": 0,
+    "fenceRejectedFills": 1,
+    "retainedCacheFills": 0
+  },
+  "inventory_audit": {
+    "valid": true,
+    "ingredient_count": 150,
+    "mismatched_ingredient_ids": [],
+    "committed_orders": 2,
+    "incomplete_receipts": 0
+  },
+  "finished_at": "2026-11-14T18:08:37.718187+00:00"
+}

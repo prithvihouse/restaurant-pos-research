@@ -1,0 +1,5 @@
+{
+  "baseline_rps": 600,
+  "boundary_rps": 4800,
+  "rule": "600 req/s as below-pressure reference and smallest screening rate with any mode below 95% delivered or above 50 ms overall P95; ten new matched repeats for confirmation."
+}

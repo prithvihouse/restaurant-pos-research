@@ -1,0 +1,34 @@
+{
+  "trials": 27,
+  "inventory_audits_passed": 27,
+  "method": "median and observed minimum/maximum of trial-level metrics",
+  "execution": "local_process",
+  "hardware": {
+    "os": "Linux-6.18.57-x86_64-with-glibc2.41",
+    "machine": "x86_64",
+    "cpu_model": "AMD EPYC 9V74 80-Core Processor",
+    "os_cpu_count": 9,
+    "affinity_cpu_count": 9,
+    "meminfo": "MemTotal:       10206472 kB",
+    "cgroup_reported": {},
+    "python": "3.12.14"
+  },
+  "versions": {
+    "node": "v24.22.1",
+    "postgres": "postgres (PostgreSQL) 17.11 (Debian 17.11-0+deb13u1)",
+    "redis": "Redis server v=8.0.2 sha=00000000:0 malloc=jemalloc-5.3.0 bits=64 build=b843bbd074c0e1da",
+    "k6": "k6 v2.3.0 (commit/e088784614, go1.26.8, linux/amd64)",
+    "api_dependencies": {
+      "express": "4.21.2",
+      "pg": "8.14.1",
+      "redis": "4.5.1"
+    }
+  },
+  "successful_requests": 22108,
+  "failed_or_incomplete_requests": 0,
+  "business_rejections": 0,
+  "started_probes": 45,
+  "eligible_probes": 45,
+  "unfinished_probes": 0,
+  "redis_errors": 0
+}

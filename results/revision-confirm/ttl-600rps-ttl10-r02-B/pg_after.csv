@@ -1,0 +1,32 @@
+row_type,queryid,calls,rows,total_exec_ms,query,stats_reset,dealloc
+info,,,,,,2026-11-14 17:44:05.543355+00,0
+statement,-1259577620467670751,1440,4320,61.425839,"SELECT i.id, i.on_hand, r.units_per_item FROM recipe_ingredients r
+      JOIN ingredients i ON i.id = r.ingredient_id
+      WHERE r.menu_item_id = $1 ORDER BY i.id FOR UPDATE OF i",,
+statement,-133942128219106338,195,195,9.120257999999996,"SELECT /* pos_menu_item */ m.id AS ""itemId"", m.name, m.price_cents AS ""priceCents"",
+           MIN(i.on_hand / r.units_per_item)::integer AS ""sellableUnits"",
+           SUM(i.revision)::text AS ""stockVersion""
+    FROM menu_items m
+    JOIN recipe_ingredients r ON r.menu_item_id = m.id
+    JOIN ingredients i ON i.id = r.ingredient_id
+    WHERE m.id = $1
+    GROUP BY m.id",,
+statement,-2835399305386018931,1440,0,0.5906010000000003,COMMIT,,
+statement,-2969766663128965394,1440,0,7.364598000000007,BEGIN ISOLATION LEVEL READ COMMITTED,,
+statement,-3380238861448734306,1440,4320,79.86775300000015,"UPDATE ingredients i
+      SET on_hand = i.on_hand - r.units_per_item * $2::integer, revision = i.revision + $3
+      FROM recipe_ingredients r WHERE r.ingredient_id = i.id AND r.menu_item_id = $1",,
+statement,6035395452179635555,1,300,0.100983,"SELECT ingredient_id, menu_item_id FROM recipe_ingredients ORDER BY ingredient_id, menu_item_id",,
+statement,8635107437525306164,1440,1440,94.79169000000006,"INSERT INTO orders (id, menu_item_id, quantity, unit_price_cents)
+      SELECT $1::uuid, id, $3::integer, price_cents FROM menu_items WHERE id = $2
+      ON CONFLICT (id) DO NOTHING RETURNING id",,
+statement,8842682348451288030,1440,1440,118.0494580000001,"UPDATE orders SET stock_version_after = snapshot.version, sellable_units_after = snapshot.units
+      FROM (
+        SELECT SUM(i.revision) AS version, MIN(i.on_hand / r.units_per_item) AS units
+        FROM recipe_ingredients r JOIN ingredients i ON i.id = r.ingredient_id
+        WHERE r.menu_item_id = $2
+      ) snapshot
+      WHERE orders.id = $1
+      RETURNING 
+  id AS ""orderId"", menu_item_id AS ""itemId"", quantity, unit_price_cents AS ""unitPriceCents"",
+  stock_version_after::text AS ""stockVersionAfter"", sellable_units_after AS ""sellableUnitsAfter""",,

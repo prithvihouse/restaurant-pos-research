@@ -1,0 +1,30 @@
+{
+  "repeat": 4,
+  "mode": "D",
+  "eligible": 3542,
+  "stale": 0,
+  "failures": 0,
+  "recorded_requests": 3729,
+  "committed_orders": 181,
+  "api_metrics": {
+    "menuDatabaseReads": 541,
+    "cacheHits": 3007,
+    "cacheMisses": 541,
+    "cacheGetErrors": 0,
+    "cacheSetErrors": 0,
+    "redisConnectionErrors": 0,
+    "invalidationAttempts": 181,
+    "invalidationErrors": 0,
+    "deletedKeys": 174,
+    "fenceRejectedFills": 45,
+    "retainedCacheFills": 322
+  },
+  "audit": {
+    "valid": true,
+    "ingredient_count": 150,
+    "mismatched_ingredient_ids": [],
+    "committed_orders": 181,
+    "incomplete_receipts": 0
+  },
+  "finished_at": "2026-11-14T18:10:07.919318+00:00"
+}

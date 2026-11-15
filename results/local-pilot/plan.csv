@@ -1,0 +1,2 @@
+run_id,workload,vus,repeat,mode
+exploratory-mixed-10vu-r1-C,mixed,10,1,C

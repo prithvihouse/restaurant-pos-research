@@ -1,0 +1,10 @@
+run_id,mode,repeat,vus,started_probes,recorded_probes,eligible,stale,unfinished_probes,ineligible,stale_at_ack_rate,quantity_comparable,proven_overstatements,overstatement_rate,median_ack_to_first_read_ms
+exploratory-freshness-10vu-r1-B,B,1,10,5,5,5,5,0,0,1.0,5,5,1.0,0
+exploratory-freshness-10vu-r1-C,C,1,10,5,5,5,0,0,0,0.0,5,0,0.0,1
+exploratory-freshness-10vu-r1-A,A,1,10,5,5,5,0,0,0,0.0,5,0,0.0,1
+exploratory-freshness-10vu-r2-C,C,2,10,5,5,5,0,0,0,0.0,5,0,0.0,1
+exploratory-freshness-10vu-r2-A,A,2,10,5,5,5,0,0,0,0.0,5,0,0.0,1
+exploratory-freshness-10vu-r2-B,B,2,10,5,5,5,5,0,0,1.0,5,5,1.0,1
+exploratory-freshness-10vu-r3-A,A,3,10,5,5,5,0,0,0,0.0,5,0,0.0,1
+exploratory-freshness-10vu-r3-B,B,3,10,5,5,5,5,0,0,1.0,5,5,1.0,0
+exploratory-freshness-10vu-r3-C,C,3,10,5,5,5,0,0,0,0.0,5,0,0.0,1

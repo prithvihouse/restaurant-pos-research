@@ -1,0 +1,31 @@
+services:
+  postgres:
+    ports: !reset []
+  redis:
+    ports: !reset []
+  api:
+    image: ${POSBENCH_API_IMAGE:-redis-pos-testbed-benchmark-api:local}
+    pull_policy: never
+    ports: !reset []
+    environment:
+      PGHOST: postgres
+      PGPORT: "5432"
+      PGDATABASE: pos
+      PGUSER: pos_app
+      PGPASSWORD: ${POS_APP_PASSWORD:?Set POS_APP_PASSWORD in .env}
+      PG_POOL_MAX: "10"
+      REDIS_URL: redis://redis:6379/0
+      CACHE_MODE: ${POSBENCH_MODE:-postgres}
+      CACHE_TTL_SECONDS: ${POSBENCH_TTL_SECONDS:-10}
+  bench-k6:
+    image: grafana/k6:2.3.0
+    profiles: ["benchmark"]
+    user: "${POSBENCH_UID:-1000}:${POSBENCH_GID:-1000}"
+    entrypoint: ["sleep"]
+    command: ["2147483647"]
+    environment:
+      POS_BASE_URL: http://api:3000
+      K6_NO_USAGE_REPORT: "true"
+    volumes:
+      - ./benchmarks:/benchmarks:ro
+      - ./results/runs:/results

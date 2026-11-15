@@ -1,0 +1,6 @@
+observed_at,probe_id,item_id,result,acknowledged_version,observed_version,acknowledged_units,observed_units,overstates_units,ack_to_read_ms
+2026-11-14T02:03:59.163921285-05:00,0,64,stale,6,0,499998,500000,true,0
+2026-11-14T02:04:01.15486071-05:00,1,41,stale,5,0,499998,500000,true,0
+2026-11-14T02:04:03.154857056-05:00,2,64,stale,33,0,499989,500000,true,1
+2026-11-14T02:04:05.153788693-05:00,3,64,stale,36,0,499988,500000,true,0
+2026-11-14T02:04:07.155589781-05:00,4,21,stale,18,12,499994,499996,true,0

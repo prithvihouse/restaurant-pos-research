@@ -1,0 +1,4 @@
+run_id,profile,workload,vus,repeat,mode,endpoint,started,recorded,completed_in_window,http_responses_in_window,completed_in_drain,successful,business_rejections,failure_responses,incomplete,failure_rate,business_rejection_rate,completed_rps,http_responses_rps,successful_rps,mean_ms,median_ms,p95_ms
+exploratory-read-10vu-r1-C,exploratory,read,10,1,C,all,780,780,780,780,0,780,0,0,0,0.0,0.0,97.5,97.5,97.5,1.6708993576923077,1.3517955,3.487215
+exploratory-read-10vu-r1-C,exploratory,read,10,1,C,menu_item,780,780,780,780,0,780,0,0,0,0.0,0.0,97.5,97.5,97.5,1.6708993576923077,1.3517955,3.487215
+exploratory-read-10vu-r1-C,exploratory,read,10,1,C,order_create,0,0,0,0,0,0,0,0,0,,,0.0,0.0,0.0,,,

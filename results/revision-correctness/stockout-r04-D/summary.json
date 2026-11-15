@@ -1,0 +1,115 @@
+{
+  "run_id": "stockout-r04-D",
+  "case": "stockout",
+  "repeat": 4,
+  "mode": "D",
+  "browsers": 8,
+  "order_attempts": 0,
+  "false_positive_stock_rejections": 0,
+  "events": [
+    {
+      "run_id": "stockout-r04-D",
+      "mode": "D",
+      "customer": 1,
+      "displayed_version": 4,
+      "displayed_units": 0,
+      "authoritative_version_before_browsing": 4,
+      "authoritative_units_before_browsing": 0,
+      "http_status": null,
+      "order_code": null,
+      "false_positive_stock_rejection": false
+    },
+    {
+      "run_id": "stockout-r04-D",
+      "mode": "D",
+      "customer": 2,
+      "displayed_version": 4,
+      "displayed_units": 0,
+      "authoritative_version_before_browsing": 4,
+      "authoritative_units_before_browsing": 0,
+      "http_status": null,
+      "order_code": null,
+      "false_positive_stock_rejection": false
+    },
+    {
+      "run_id": "stockout-r04-D",
+      "mode": "D",
+      "customer": 3,
+      "displayed_version": 4,
+      "displayed_units": 0,
+      "authoritative_version_before_browsing": 4,
+      "authoritative_units_before_browsing": 0,
+      "http_status": null,
+      "order_code": null,
+      "false_positive_stock_rejection": false
+    },
+    {
+      "run_id": "stockout-r04-D",
+      "mode": "D",
+      "customer": 4,
+      "displayed_version": 4,
+      "displayed_units": 0,
+      "authoritative_version_before_browsing": 4,
+      "authoritative_units_before_browsing": 0,
+      "http_status": null,
+      "order_code": null,
+      "false_positive_stock_rejection": false
+    },
+    {
+      "run_id": "stockout-r04-D",
+      "mode": "D",
+      "customer": 5,
+      "displayed_version": 4,
+      "displayed_units": 0,
+      "authoritative_version_before_browsing": 4,
+      "authoritative_units_before_browsing": 0,
+      "http_status": null,
+      "order_code": null,
+      "false_positive_stock_rejection": false
+    },
+    {
+      "run_id": "stockout-r04-D",
+      "mode": "D",
+      "customer": 6,
+      "displayed_version": 4,
+      "displayed_units": 0,
+      "authoritative_version_before_browsing": 4,
+      "authoritative_units_before_browsing": 0,
+      "http_status": null,
+      "order_code": null,
+      "false_positive_stock_rejection": false
+    },
+    {
+      "run_id": "stockout-r04-D",
+      "mode": "D",
+      "customer": 7,
+      "displayed_version": 4,
+      "displayed_units": 0,
+      "authoritative_version_before_browsing": 4,
+      "authoritative_units_before_browsing": 0,
+      "http_status": null,
+      "order_code": null,
+      "false_positive_stock_rejection": false
+    },
+    {
+      "run_id": "stockout-r04-D",
+      "mode": "D",
+      "customer": 8,
+      "displayed_version": 4,
+      "displayed_units": 0,
+      "authoritative_version_before_browsing": 4,
+      "authoritative_units_before_browsing": 0,
+      "http_status": null,
+      "order_code": null,
+      "false_positive_stock_rejection": false
+    }
+  ],
+  "inventory_audit": {
+    "valid": true,
+    "ingredient_count": 150,
+    "mismatched_ingredient_ids": [],
+    "committed_orders": 2,
+    "incomplete_receipts": 0
+  },
+  "finished_at": "2026-11-14T18:08:25.070165+00:00"
+}

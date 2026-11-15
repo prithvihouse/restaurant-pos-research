@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+message: "Cite the manuscript for the research findings and identify the artifact version used for replication."
+title: "Restaurant POS Redis Caching Research Artifact"
+type: software
+authors:
+  - given-names: Prithvi
+    family-names: Kurmi
+    affiliation: Georgia State University
+version: "2.0"
+preferred-citation:
+  type: unpublished
+  title: "Performance and Consistency Trade-offs of Redis Caching in a Restaurant Point-of-Sale Backend"
+  authors:
+    - given-names: Prithvi
+      family-names: Kurmi
+      affiliation: Georgia State University
+  year: 2026
+  notes: "Independent Research Manuscript (Unpublished). See the manuscript for the contribution and measurement provenance."
