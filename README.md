@@ -1,6 +1,6 @@
 # Redis Caching in a Restaurant POS Backend
 
-**Independent Research Manuscript (Unpublished).** Prithvi Kurmi, Georgia State University.
+**Preprint:** DOI 10.5281/zenodo.24367420 · **Code & Data Artifact:** DOI 10.5281/zenodo.24239951 — Prithvi Kurmi, Georgia State University.
 
 This project evaluates four ways to serve item availability in an Express point-of-sale API. PostgreSQL owns inventory and order transactions. Redis can cache item displays, which include an ingredient stock version and available quantity.
 
@@ -27,7 +27,7 @@ Plain deletion returned stale stock on all ten forced follow-up reads. The gener
 | [results/](results/) | Measured trials, raw observations, control records, and prior exploratory material |
 | [analysis/](analysis/) | Python aggregation, interval estimates, plots, and results in CSV |
 | [paper/RELEASE.md](paper/RELEASE.md) | Artifact archival, citation, and replication notes |
-| [CITATION.cff](CITATION.cff) | Citation metadata for the unpublished paper and artifact |
+| [CITATION.cff](CITATION.cff) | Citation metadata for the preprint and artifact |
 
 ## Recreate results from recorded data
 

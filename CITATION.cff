@@ -7,6 +7,7 @@ authors:
     family-names: Kurmi
     affiliation: Georgia State University
 version: "2.0"
+doi: 10.5281/zenodo.24239951
 preferred-citation:
   type: unpublished
   title: "Performance and Consistency Trade-offs of Redis Caching in a Restaurant Point-of-Sale Backend"
@@ -15,4 +16,5 @@ preferred-citation:
       family-names: Kurmi
       affiliation: Georgia State University
   year: 2026
-  notes: "Independent Research Manuscript (Unpublished). See the manuscript for the contribution and measurement provenance."
+  doi: 10.5281/zenodo.24367420
+  notes: "Preprint archived on Zenodo. See the manuscript for the contribution and measurement provenance."
